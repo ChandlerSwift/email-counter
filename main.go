@@ -67,6 +67,8 @@ func generateGraph(db *sql.DB) {
 	rowsProcessed := 0
 	most_tabs_open := 0
 	peak_tabs_annotations := []chart.Value2{}
+	var fewest_tabs_open int = 1e9 // I really hope I never have more emails than this!
+	minimum_tabs_annotations := []chart.Value2{}
 	for rows.Next() {
 		var count int
 		var t time.Time
@@ -90,6 +92,19 @@ func generateGraph(db *sql.DB) {
 			})
 		}
 
+		if count < fewest_tabs_open {
+			minimum_tabs_annotations = []chart.Value2{
+				{XValue: chart.TimeToFloat64(t), YValue: float64(count), Label: fmt.Sprintf("%v tabs on %v", count, t.Format("Jan 2"))},
+			}
+			fewest_tabs_open = count
+		} else if count == fewest_tabs_open {
+			minimum_tabs_annotations = append(minimum_tabs_annotations, chart.Value2{
+				XValue: chart.TimeToFloat64(t),
+				YValue: float64(count),
+				Label:  fmt.Sprintf("%v tabs on %v", count, t.Format("Jan 2")),
+			})
+		}
+
 		rowsProcessed++
 	}
 	err = rows.Err()
@@ -106,6 +121,9 @@ func generateGraph(db *sql.DB) {
 			},
 			chart.AnnotationSeries{
 				Annotations: peak_tabs_annotations,
+			},
+			chart.AnnotationSeries{
+				Annotations: minimum_tabs_annotations,
 			},
 		},
 	}
